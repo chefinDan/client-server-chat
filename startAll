@@ -1,0 +1,38 @@
+#! /bin/bash
+
+echo -e "compiling chatclient.c ..."
+gcc -std=c99 -Wall -g -o chatclient chatclient.c
+
+if [ $? -eq 1 ]
+	then
+		exit 1
+fi
+
+printf "Enter a port number for chatserve to listen on: "
+while read listenPort
+do
+		echo -e "You entered: $listenPort"
+		break
+done <&0
+
+printf "Enter hostname of server: "
+while read hostname
+do
+		echo -e "You entered: $hostname"
+		break
+done <&0
+
+printf "Enter port number for chatclient to connect on ($listenPort): "
+while read serverPort
+do
+		echo -e "You entered: $serverPort"
+		break
+done <&0
+
+echo "Starting chatserve in background..."
+python3 chatserve.py $listenPort &
+
+read -p "Waiting 3 secs for server to start...." -t 5
+
+echo "Starting chatclient..."
+./chatclient $hostname $serverPort
