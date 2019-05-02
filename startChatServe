@@ -1,0 +1,11 @@
+#! /bin/bash
+
+printf "Enter a port number for chatserve to listen on: "
+while read listenPort
+do
+		echo -e "You entered: $listenPort"
+		break
+done <&0
+
+echo "Starting chatserve..."
+python3 chatserve.py $listenPort

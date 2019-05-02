@@ -1,7 +1,11 @@
-/******************************************************************************
-** Author: Daniel Green, greendan@oregonstate.edu
-** Description: starts a client program that sends plaintext data to otp_enc_d
-******************************************************************************/
+
+
+// ========================================================================== //
+// === Author: Daniel Green, greendan@oregonstate.edu
+// === Date: 2 May 2019
+// === Description: starts a client program that sends plaintext a chat server
+// ========================================================================== //
+
 #define _POSIX_C_SOURCE 1
 #define _DEFAULT_SOURCE
 #include <stdio.h>
@@ -16,156 +20,46 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <math.h>
-#define MAX 1024
+#define MAX 500
 #define MAX_STATUS 8
 #define HANDLE_LEN 10
 #define h_addr h_addr_list[0] /* for backward compatibility */
-
-// struct message{
-// 	struct stat statbuf;
-// 	int chrCnt;
-// 	int fd;
-// 	char *buffer;
-// };
 
 
 void error(const char *msg) { perror(msg);} // Error function used for reporting issues
 
 
-// int getMessage(char *file, struct message* msg){
-// 	int tmpchar = 0;
-// 	int charCnt = 0;
-//
-// 	FILE *fp = fopen(file, "r");
-// 	if(fp == NULL) { error("OTP_ENC: ERROR, cannot open file.\nUsage: otp_enc <plaintext> <key> <port>"); exit(1); }
-//
-// 	info->fd = fileno(fp);
-// 	fstat(fileno(fp), &info->statbuf);
-// 	printf("")
-// 	while((tmpchar = fgetc(fp))){
-// 		if((tmpchar >= 65 && tmpchar <= 90) || tmpchar == 32){
-// 			charCnt++;
-// 		}
-// 		else if(tmpchar == '\n'){
-// 			info->chrCnt = charCnt;
-// 			break;
-// 		}
-// 		else{
-// 			return -1;
-// 		}
-// 	}
-	// info->buffer = malloc(sizeof(char) * info->chrCnt);
-	// memset(info->buffer, '\0', info->chrCnt);
-//
-// 	rewind(fp);
-// 	fgets(info->buffer, info->chrCnt+1, fp);
-// 	fclose(fp);
-// 	return charCnt;
-// }
+int comm(int sockfd, char* data, char* response){
+	int charsWritten, charsRead;
 
-// function for recving a small number indicating the total size of the coming
-// data file.
-int recvDataSize(int sockfd){
-	char buffer[MAX_STATUS];
-	int charsRead, charsSent, n;
-	memset(buffer, '\0', MAX_STATUS);
+  // send data to server
+	charsWritten = send(sockfd, data, strlen(data), 0); // Write to the server
+	if ( charsWritten < 0) { error("CLIENT: ERROR writing to socket"); return 1; }
+  if ( strcmp(data, "\\quit\n") == 0){ return 1; } // if client sent "quit", exit and return 1
 
-	n = recv(sockfd, buffer, MAX_STATUS, 0);
-	if(n < 0){ error("SERVER: cannot recieve data size"); exit(1); }
-	send(sockfd, "200", MAX_STATUS, 0);
-	return (int)strtol(buffer, NULL, 10);
-}
+	// Get response message from server
+	charsRead = recv(sockfd, response, MAX, 0); // Read data from the socket
+	if ( charsRead < 0 ) { error("CLIENT: ERROR reading from socket"); return 1; }
+  if ( strcmp(response, "\\quit") == 0){ return 1; } // if server sends "quit", exit and return 1
 
-
-int sendDataSize(int sockfd, char* data){
-	int n, len;
-	char sizeBuf[MAX_STATUS];
-	memset(sizeBuf, '\0', MAX_STATUS);
-
-	sprintf(sizeBuf, "%ld", strlen(data));
-
-	n = send(sockfd, sizeBuf, MAX_STATUS, 0);
-	if (n < 0) { error("CLIENT: ERROR in sendDataSize(), writing to socket"); return 1; }
-
-	memset(sizeBuf, '\0', MAX_STATUS);
-	n = recv(sockfd, sizeBuf, MAX_STATUS, 0);
-	if (n < 0) { error("CLIENT: ERROR in sendDataSize(), reading from socket"); return 1; }
-
+  // print response from server
+  printf("Hal> %s\n", response);
+  memset(response, '\0', MAX);
 	return 0;
-}
-
-int sendData(int sockfd, char* data){
-	int charsWritten, charsRead, charsRemain, n;
-	char status[MAX_STATUS];
-	char* buffer = NULL;
-
-	// sendDataSize(sockfd, data);
-
-	charsRemain = strlen(data);
-	charsWritten = 0;
-	buffer = malloc(sizeof(char) * (size_t)strlen(data));
-	memset(buffer, '\0', strlen(data));
-
-	while(charsWritten < strlen(data)){
-		n = send(sockfd, buffer + charsWritten, charsRemain, 0); // Write to the server
-		if (n < 0) { error("CLIENT: ERROR writing to socket"); return 1; }
-		charsWritten+=n;
-		charsRemain-=n;
-	}
-
-	// Get return message from server
-	charsRead = recv(sockfd, status, MAX_STATUS, 0); // Read data from the socket
-	if (charsRead < 0) { error("CLIENT: ERROR reading from socket"); return 1; }
-	return 0;
-}
-
-int recvData(int sockfd, char* data){
-	int charsRead, charsSent, charsExpected, charsRemain, n;
-	char* buffer = NULL;
-
-	charsRead = 0;
-	charsExpected = recvDataSize(sockfd);
-	if(charsExpected == 0){ return 0; }
-	charsRemain = charsExpected;
-
-	buffer = malloc(sizeof(char) * (size_t)strlen(data));
-	memset(buffer, '\0', strlen(data));
-
-	while(charsRead < charsExpected){
-		n = recv(sockfd, buffer + charsRead, charsRemain, 0);
-		if (charsRead < 0) { error("CLIENT: ERROR reading from socket"); }
-		charsRead+=n;
-		charsRemain-=n;
-	}
-	buffer[charsExpected] = '\0';
-
-	// Send a Success message back to the server
-	n = send(sockfd, "200", MAX_STATUS, 0); // Send success back
-	if (n < 0) { error("ERROR writing to socket"); }
-
-	return 1;
 }
 
 
 int main(int argc, char *argv[])
 {
-	int socketFD, port, mCnt, keyCnt, nread;
+	int socketFD, port, mCnt, keyCnt, nread, commResult;
 	size_t maxHandleLen = HANDLE_LEN;
 	char handle[10];
-	char* message = NULL;
+	char message[MAX];
+  char response[MAX];
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 
 	if(argc < 3){ error("CLIENT: ERROR, usage: chatclient <server_hostname> <server_port>"); exit(1); }
-	// printf("here");
-	// mCnt = fileCheck(argv[1], &srcinfo); // open the srctext file and store info in struct srcinfo
-	// keyCnt = fileCheck(argv[2], &keyinfo); // open keytext file and store info in struct keyinfo
-
-	// if(mCnt < 0){ error("OTP_ENC: ERROR, plaintext file contains invalid character(s)"); exit(1); }
-	// if(keyCnt < 0) {error("OTP_ENC: ERROR, key file contains invalid character(s)"); exit(1); }
-	// if(keyCnt < mCnt) { error("OTP_ENC: ERROR, key file contains fewer characters than plaintext file"); exit(1); }
-	// encinfo.chrCnt = mCnt;
-	// encinfo.buffer = (char*)malloc(mCnt);
 
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -180,35 +74,41 @@ int main(int argc, char *argv[])
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
 	if (socketFD < 0) {error("CLIENT: ERROR opening socket"); exit(1); }
 
-	// Connect to server
-
-	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to address
-		error("CLIENT: ERROR connecting"); exit(1);
-	}
-
-	// Get users handle
+	// Get users handle and initialize message array
 	printf("Enter a handle that you would like to be identified by: ");
 	fgets(handle, maxHandleLen, stdin);
 	handle[strlen(handle) -1] = '\0';
-	printf("Hello %s, you may begin chatting with Hal\n", handle);
-	printf("%s> ", handle);
+  memset(message, '\0', MAX);
+  memset(response, '\0', MAX);
 
-	// while ((nread = getline(handle, &maxHandleLen, stdin)) != -1) {
-  // 	printf("Retrieved line of length %zu:\n", (size_t)nread);
-  // }
+	// Connect to server via socketFD
+	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
+		error("CLIENT: ERROR connecting"); exit(1);
+	}
 
-	// message = "Hello from the client";
-	//
-	// if( sendData(socketFD, &srcinfo) == -1 ){ error("CLIENT: ERROR, did not send all data"); exit(1); }
-	// if( sendData(socketFD, &keyinfo) == -1 ){ error("CLIENT: ERROR, did not send all data"); exit(1); }
-	// if( recvData(socketFD, &encinfo) == -1 ){ error("CLIENT: ERROR, did not recv all data"); exit(1); }
-	//
-	// close(socketFD);
-	//
-	// printf("%s\n", encinfo.buffer);
-	// free(srcinfo.buffer);
-	// free(keyinfo.buffer);
+  // send User handle to server
+	comm(socketFD, handle, response);
 
-	 // Close the socket
-	return 0;
+  while(1){
+    printf("%s> ", handle);
+    fgets(message, MAX, stdin);
+
+    if(strcmp(message, "\\quit\n") == 0){
+      printf("%s\n", "Closing socket");
+      commResult = comm(socketFD, message, response);
+      close(socketFD);
+      return 0;
+    }
+
+    commResult = comm(socketFD, message, response);
+
+    if(commResult > 0){
+      printf("%s\n", "Server closed socket");
+      close(socketFD);
+      return 0;
+    }
+    memset(message, '\0', MAX);
+  }
+
+
 }

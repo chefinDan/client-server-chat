@@ -1,0 +1,26 @@
+#! /bin/bash
+
+echo -e "compiling chatclient.c ..."
+gcc -std=c99 -g -o chatclient chatclient.c
+
+if [ $? -eq 1 ]
+	then
+		exit 1
+fi
+
+printf "Enter hostname of server: "
+while read hostname
+do
+		echo -e "You entered: $hostname"
+		break
+done <&0
+
+printf "Enter port number for chatclient to connect on: "
+while read serverPort
+do
+		echo -e "You entered: $serverPort"
+		break
+done <&0
+
+echo "Starting chatclient..."
+./chatclient $hostname $serverPort
