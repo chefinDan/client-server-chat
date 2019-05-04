@@ -8,3 +8,5 @@ Usage: To run this program, do:
   ./startChatServe
   ./startChatClient
 ```
+Both the client and server can be run on localhost, or the server may be run on
+the flip.engr.oregonstate servers, and the client run from localhost.

@@ -13,7 +13,7 @@ import sys
 
 MAX_MSG_SIZE = 500
 MAX_HANDLE_SIZE = 10
-handle = 'Hal'  # The name the server will be recognized by
+handle = "Hal"  # The name the server will be recognized by
 
 # =============================================================================
 # This function starts a chat session with the client by first recieving the
@@ -24,25 +24,27 @@ handle = 'Hal'  # The name the server will be recognized by
 
 def comm(connection, addr):
     userHandle = connection.recv(MAX_HANDLE_SIZE)
-    greeting = "Hello {}, you are now chatting with {}".format(userHandle.decode(), handle)
+    greeting = "Hello {}, you are now chatting with {}".format(
+        userHandle.decode(), handle
+    )
 
     connection.send(greeting.encode())
-    while(True):
+    while True:
         try:
             response = connection.recv(MAX_MSG_SIZE)
             # print("SERVER: recieved {}".format(message.decode()))
             if len(response.decode()) > 0:
-                if response.decode() == '\\quit\n':
+                if response.decode() == "\\quit\n":
                     print("Client closed socket")
                     return 1
 
-                print(userHandle.decode() + '> ' + response.decode())
+                print(userHandle.decode() + "> " + response.decode())
                 del response
 
                 # Get input to send the client
-                message = input('Hal> ')
+                message = input("Hal> ")
                 connection.send(message.encode())
-                if message == '\\quit':
+                if message == "\\quit":
                     print("Closing socket")
                     return 1
 
@@ -60,11 +62,11 @@ def comm(connection, addr):
 
 PORT = int(sys.argv[1])
 serverSocket = socket(AF_INET, SOCK_STREAM)
-serverSocket.bind(('', PORT))
+serverSocket.bind(("", PORT))
 
 serverSocket.listen(1)
 
-while(True):
+while True:
     connectionSocket, addr = serverSocket.accept()
     print("SERVER: {} connected".format(addr))
     commResult = comm(connectionSocket, addr)
