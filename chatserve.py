@@ -1,11 +1,20 @@
 # ==============================================================================
 # Author: Daniel Green
-# Date: 2 May 2019
+# Date: 5 May 2019
 # Description: This program initiates a tcp connection with the host created
 # by compling and executing chatclient.c. It is a socket programming
 # implementation of a simple two-host chat server.
 # The user may enter \quit at anytime to end the chat session.
 # ==============================================================================
+
+"""  Code source citations
+    The basic socket prgramming interface used in this program was taken from
+    the following resource(s).
+
+    Title: Computer Networking A Top Down Approach 7th Edition
+    Author: James Kurose, Keith Ross
+    Date: 2017
+"""
 
 
 from socket import *
