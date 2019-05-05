@@ -36,7 +36,7 @@ def comm(connection, addr):
             if len(response.decode()) > 0:
                 if response.decode() == "\\quit\n":
                     print("Client closed socket")
-                    return 1
+                    return 0
 
                 print(userHandle.decode() + "> " + response.decode())
                 del response
